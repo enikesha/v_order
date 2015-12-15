@@ -882,7 +882,7 @@ function request_uri($env = null)
     {
       $request_uri = $env['SERVER']['REQUEST_URI'];
 #ifndef KittenPHP
-      $request_uri = rtrim($env['SERVER']['REQUEST_URI'], '?/').'/';
+#      $request_uri = rtrim($env['SERVER']['REQUEST_URI'], '?/').'/';
 #endif
       $base_path = $env['SERVER']['SCRIPT_NAME'];
 
@@ -890,7 +890,7 @@ function request_uri($env = null)
 
       $uri = $request_uri;
 #ifndef KittenPHP
-      $uri = str_replace($base_path, '', $request_uri);
+#      $uri = str_replace($base_path, '', $request_uri);
 #endif
 
       if(option('base_uri') && strpos($uri, option('base_uri')) === 0) {
