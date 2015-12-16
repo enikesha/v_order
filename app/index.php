@@ -58,6 +58,7 @@ function auth()
 function deposit()
 {
     set('member', checkAuth());
+    set('script', 'pages.deposit()');
 
     global $page;
     ob_start();

@@ -196,7 +196,7 @@ function long_cancel_transaction($trans_id, $auth_code)
 function long_commit_transaction($trans_id, $auth_code)
 {
     global $MC_Money;
-    return $MC_Money->get("long_commit$trans_id#" . code($auth_code));
+    return $MC_Money->get("long_commit$trans_id#$auth_code");
 }
 
 function cancel_committed($trans_id, $sign_time, $ip, $auth_code, $comment)
