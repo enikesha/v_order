@@ -22,7 +22,6 @@
     </script>
   </head>
   <body>
-
     <nav class="navbar navbar-inverse navbar-fixed-top">
       <div class="container">
         <div class="navbar-header">
@@ -53,24 +52,21 @@
       </div>
     </nav>
 
-    <div class="jumbotron">
-      <div class="container">
-        <div class="row">
-          <div class="col-sm-3 sidebar">
-            <?php if ($page['info']) { ?>
-            <div id="page_avatar">
-              <img class="img-thumbnail" src="<?php echo $page['photo']?>" alt="<?php echo h($page['name'])?>">
-            </div>
-            <h4><?php echo h($page['name'])?></h4>
-            <?php }?>
-            <?php if (isset($page['balance'])) {?>
-            <h5>Баланс: <span class="balance"><?php echo $page['balance']?></span> руб.</h5>
-            <?php }?>
-          </div>
-
-          <div class="col-sm-8 col-sm-offset-1">
-            <?php echo $page['content']?>
-          </div>
+    <div class="container">
+      <div class="row">
+        <div class="col-sm-3 sidebar">
+          <?php if ($page['info']) { ?>
+          <a href="https://vk.com/id<?php echo $page['info']['mid']?>">
+            <img class="img-thumbnail" src="<?php echo $page['photo']?>" alt="<?php echo h($page['name'])?>">
+          </a>
+          <h4><?php echo h($page['name'])?></h4>
+          <?php }?>
+          <?php if (isset($page['balance'])) {?>
+          <h5>Баланс: <span class="balance"><?php echo $page['balance']?></span> руб.</h5>
+          <?php }?>
+        </div>
+        <div class="col-sm-8 col-sm-offset-1">
+          <?php echo $page['content']?>
         </div>
       </div>
     </div>
@@ -84,9 +80,8 @@
     <script src="/js/order.js"></script>
     <script type="text/javascript">
       pages.global();
-      <?php if (isset($page['script'])) {
-          echo $page['script'];
-      }?>
+      if (pages.<?php echo $page['route']['callback']?>)
+          pages.<?php echo $page['route']['callback']?>();
     </script>
   </body>
 </html>

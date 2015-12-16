@@ -2,11 +2,21 @@ window.pages = {
     global: function() {
         document.getElementById('logout').addEventListener('click', authLogout, false);
     },
+    index: function() {
+        listenOrders();
+    },
+    mine: function() {
+        listenOrders();
+    },
     deposit: function(){
         document.getElementById('deposit').addEventListener('click', deposit, false);
         document.getElementById('verify').addEventListener('click', verify, false);
     }
 };
+
+function listenOrders() {
+    document.getElementById('add-order').addEventListener('click', addOrder, false);
+}
 
 function authLogout(e) {
     e.preventDefault();
@@ -16,7 +26,7 @@ function authLogout(e) {
 }
 
 function showError(input, text) {
-    $(input).popover({content: text, placement: 'left', trigger: "manual"}).popover('show');
+    $(input).popover({content: text, placement: 'top', trigger: "manual"}).popover('show');
     input.value = '';
     setTimeout(function(){$(input).popover('destroy')}, 2000);
 };
@@ -82,6 +92,51 @@ function verify(e) {
                 msg = "Ошибка пополнения";
             }
             showError(input, msg);
+        }
+    });
+}
+
+function addOrder(e) {
+    e.preventDefault();
+
+    var title = document.getElementById('inputTitle');
+    if (!title.value) {
+        showError(title, 'Введите заголовок');
+        return;
+    }
+    var description = document.getElementById('inputDescription');
+    if (!description.value) {
+        showError(description, 'Введите описание');
+        return;
+    }
+    var price = document.getElementById('inputPrice');
+    if (!price.value) {
+        showError(price, 'Введите цену');
+        return;
+    }
+
+    ajax.post("/order", {title: title.value,
+                         description: description.value,
+                         price:price.value}, function(r){
+        if (r.html) {
+            console.log(r);
+            $(".balance").text(r.balance);
+            var orders = document.getElementById('orders');
+            orders.innerHTML = r.html + orders.innerHTML;
+        } else {
+            var msg;
+            switch (r.error) {
+            case 'BAD_ORDER':
+                msg = 'Ошибка в объявлении';
+                break;
+            case 'INSUFFICIENT_FUNDS':
+                msg = 'Недостаточно средств на балансе';
+                break;
+            case 'ORDER_ERROR':
+            default:
+                msg = "Ошибка добавления объявления";
+            }
+            showError(price, msg);
         }
     });
 }

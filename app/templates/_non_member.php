@@ -75,16 +75,13 @@
       <div class="container">
         <div class="row">
           <div class="col-sm-3 sidebar">
-            <div id="page_avatar">
-              <img class="img-thumbnail" src="//vk.com/images/camera_200.png" alt="Anonymous">
-            </div>
-            <h4></h4>
+            <img class="img-thumbnail" src="//vk.com/images/camera_200.png" alt="Anonymous">
           </div>
 
           <div class="col-sm-8 col-sm-offset-1">
-            <h2>Войти</h2>
+            <h2>Система заказов</h2>
+            <p>Для работы нужно аутентифицироваться ВКонтакте</p>
             <div id="login_button" onclick="VK.Auth.login(authInfo);"></div>
-            <?php echo $page['content']?>
           </div>
         </div>
       </div>
