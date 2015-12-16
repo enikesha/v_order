@@ -37,13 +37,13 @@
         <div id="navbar" class="navbar-collapse collapse">
           <ul class="nav navbar-nav navbar-right">
             <li<?php echo url_active('index')?>><a href="/">Заказы</a></li>
-            <li<?php echo url_active('mine')?>><a href="/mine/">Мои</a></li>
-            <li<?php echo url_active('deposit')?>><a href="/deposit/">Счёт</a></li>
+            <li<?php echo url_active('mine')?>><a href="/mine">Мои</a></li>
+            <li<?php echo url_active('deposit')?>><a href="/deposit">Счёт</a></li>
             <li class="dropdown">
               <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false"><?php echo h($page['info']['first_name'])?> <span class="caret"></span></a>
               <ul class="dropdown-menu">
                 <?php if (isset($page['balance'])) {?>
-                <li class="dropdown-header">Баланс: <?php echo $page['balance']?> руб.</li>
+                <li class="dropdown-header">Баланс: <span class="balance"><?php echo $page['balance']?></span> руб.</li>
                 <?php }?>
                 <li><a href="#" id="logout">Выйти</a></li>
               </ul>
@@ -64,7 +64,7 @@
             <h4><?php echo h($page['name'])?></h4>
             <?php }?>
             <?php if (isset($page['balance'])) {?>
-            <h5>Баланс: <?php echo $page['balance']?> руб.</h5>
+            <h5>Баланс: <span class="balance"><?php echo $page['balance']?></span> руб.</h5>
             <?php }?>
           </div>
 

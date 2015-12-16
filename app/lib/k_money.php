@@ -1,5 +1,7 @@
 <?php
 
+define('MAX_ACC_INCR', 281474976710656); //(1LL << 48);
+
 /* Calculate 'code' from 'secret'. Code is 64-bit value from first half of
  * md5($secret) in hexadecimal form.
  *

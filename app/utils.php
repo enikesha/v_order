@@ -44,9 +44,9 @@ function checkAuth()
     $member['balance'] = $balance;
     if ($balance) {
         // Set page balance variables
-        $parts = explode(':', $balance);
-        set('balance', sprintf("%.02f", round($parts[0]/100,2)));
-        set('locked', sprintf("%.02f", round($parts[2]/100,2)));
+        list($bal, $cur, $lock) = explode(':', $balance);
+        set('balance', sprintf("%.02f", round($bal/100,2)));
+        set('locked', sprintf("%.02f", round($lock/100,2)));
     }
     return $member;
 }
@@ -57,4 +57,20 @@ function url_active($route)
     if ($page['route']['callback'] == $route)
         return ' class="active"';
     return '';
+}
+
+
+function create_deposit_transaction($mid, $amount)
+{
+    $date = time();
+    $temp = mt_rand() + 1;
+
+    $res = create_temp_transaction($temp, array(k_transaction_party("USR", $mid, 1, $amount, $temp, $date, null),
+                                                k_transaction_party("DEP", 1, 1, -$amount, $temp, $date, DEP_WITHDRAW_SECRET)),
+                                   ip2long(getRealIpAddr()), $date, '');
+    if ($res < 1)
+        return FALSE;
+
+    $parts = explode(':', long_lock_transaction($temp, 600));
+    return (count($parts) == 4) ? $parts : FALSE;
 }
