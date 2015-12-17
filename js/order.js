@@ -122,6 +122,8 @@ function addOrder(e) {
             $(".balance").text(r.balance);
             var orders = document.getElementById('orders');
             orders.innerHTML = r.html + orders.innerHTML;
+            document.getElementById('no-orders').className = 'hidden';
+            title.value = description.value = price.value = '';
         } else {
             var msg;
             switch (r.error) {
@@ -153,8 +155,9 @@ function orderAct(e, act) {
 
     ajax.post("/order/" + localId, {act: act}, function(r){
         if (r.ok) {
-            console.log(r);
             $(".balance").text(r.balance);
+            if (li.parentElement.childElementCount == 2)
+                document.getElementById('no-orders').className = '';
             li.remove();
         } else {
             var msg;

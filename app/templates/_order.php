@@ -24,6 +24,6 @@
           </div>
         </div>
       </div>
+      <div class="col-sm-12"><hr></div>
     </div>
-    <hr>
   </li>

@@ -29,13 +29,10 @@
 </form>
 
 <h3><?php echo($page['mine'] ? "Мои заказы" : "Последние заказы")?></h3>
-<?php if (count($page['orders']) > 0) {?>
 <hr>
 <ul id="orders" class="list-unstyled">
   <?php foreach ($page['orders'] as $i) {
-         include "_order.php";
-     }?>
+     include "_order.php";
+    }?>
+  <li id="no-orders"<?php if (count($page['orders'])>0) echo ' class="hidden"'?>>Заказов пока нет</li>
 </ul>
-<?php } else {?>
-<p>Заказов пока нет</p>
-<?php }?>
