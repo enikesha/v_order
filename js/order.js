@@ -72,7 +72,7 @@ function verify(e) {
     }
 
     ajax.post("/deposit", {verify: input.value}, function(r){
-        if (r.raw) {
+        if (r.balance) {
             $(".balance").text(r.balance);
             document.getElementById('inputAmount').value='';
             document.getElementById('inputVerify').value='';

@@ -2,6 +2,7 @@
 
 define('FLAG_REPLIED', 2);
 define('FLAG_DELETED', 128);
+define('MAX_ACC_INCR', '281474976710656'); //(1LL << 48)
 
 function authOpenAPIMember() { 
   $session = array(); 
@@ -117,7 +118,6 @@ function parseMoney($value)
     // Accepts '123', '123.23', '123,23'
     if (!preg_match('/^\d+(?:[\.\,]\d{2})?$/', $val))
         return FALSE;
-
     // Convert to kopecs
     $amount = round(str_replace(',','.', $val) * 100);
     if ($amount > 0 && $amount < MAX_ACC_INCR)

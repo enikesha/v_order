@@ -175,6 +175,7 @@ function route_post_order()
     }
 
     // Render order item html
+    global $i;
     $i = get_order($local_id);
     $page = array('member' => $member);
     ob_start();

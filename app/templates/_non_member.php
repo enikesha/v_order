@@ -1,3 +1,4 @@
+<?php send_header('Content-Type: text/html; charset=utf-8');?>
 <!DOCTYPE html>
 <html>
   <head>
@@ -25,7 +26,6 @@
           VK.init({
               apiId: <?php echo $page['VK_APP_ID']?>
           });
-          VK.Auth.getLoginStatus(authInfo);
           VK.UI.button('login_button');
       };
 
