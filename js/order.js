@@ -119,7 +119,6 @@ function addOrder(e) {
                          description: description.value,
                          price:price.value}, function(r){
         if (r.html) {
-            console.log(r);
             $(".balance").text(r.balance);
             var orders = document.getElementById('orders');
             orders.innerHTML = r.html + orders.innerHTML;
@@ -137,6 +136,42 @@ function addOrder(e) {
                 msg = "Ошибка добавления объявления";
             }
             showError(price, msg);
+        }
+    });
+}
+
+function orderAct(e, act) {
+    e = e || window.event;
+    var targ = e.target || e.srcElement;
+    if (targ.nodeType == 3) targ = targ.parentNode; // defeat Safari bug
+
+    e.preventDefault();
+
+    var li = targ.parentElement;
+    while (li.tagName != "LI") li = li.parentElement;
+    var localId = li.getAttribute('data-id');
+
+    ajax.post("/order/" + localId, {act: act}, function(r){
+        if (r.ok) {
+            console.log(r);
+            $(".balance").text(r.balance);
+            li.remove();
+        } else {
+            var msg;
+            switch (r.error) {
+            case 'ORDER_CANCELLED':
+                msg = 'Заказ уже отменен';
+                break
+            case 'ORDER_COMMITTED':
+                msg = 'Заказ уже исполнен';
+                break;
+            case 'START_TRANS':
+            case 'CANCEL_ORDER':
+            case 'COMMIT_ORDER':
+            default:
+                msg = "Ошибка " + (act == 'cancel' ? "отмены" : "выполнения") + " заказа";
+            }
+            showError(targ, msg);
         }
     });
 }

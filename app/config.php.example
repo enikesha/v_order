@@ -1,5 +1,7 @@
 <?php
 
+define('ORDER_FEE', 0.05); # 5% system fee
+
 define('APP_ID', 111111);
 define('APP_SHARED_SECRET', "00000000000");
 

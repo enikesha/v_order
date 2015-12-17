@@ -1,5 +1,8 @@
 <?php
 
+define('FLAG_REPLIED', 2);
+define('FLAG_DELETED', 128);
+
 function authOpenAPIMember() { 
   $session = array(); 
   $member = FALSE; 
@@ -98,6 +101,16 @@ function url_active($route)
     return '';
 }
 
+function formatBalance($acc_type, $acc_id)
+{
+    $balance = get_balance($acc_type, $acc_id, null);
+    if (!$balance)
+        return FALSE;
+
+    list($bal, $cur, $lock) = explode(':', $balance);
+    return sprintf("%.02f", round($bal/100, 2));
+}
+
 function parseMoney($value)
 {
     $val = trim($value);
@@ -148,6 +161,23 @@ function start_order_transaction($mid, $amount)
     return $res == "2" ? $temp : FALSE;
 }
 
+function start_commit_order_transaction($mid, $author_id, $amount)
+{
+    $date = time();
+    $temp = mt_rand() + 1;
+    $fee = round($amount * ORDER_FEE);
+
+    $res = create_temp_transaction($temp, array(k_transaction_party("ORD", $author_id, 1, -$amount, $temp, $date, null),
+                                                k_transaction_party("MAS", 1, 1, $fee, $temp, $date, null),
+                                                k_transaction_party("USR", $mid, 1, ($amount-$fee), $temp, $date, null)),
+                                   ip2long(getRealIpAddr()), $date, '');
+    if ($res < 1)
+        return FALSE;
+
+    $res = lock_transaction($temp);
+    return $res == "2" ? $temp : FALSE;
+}
+
 function post_order($uid, $title, $description, $price)
 {
     global $MC_Text;
@@ -164,14 +194,20 @@ function get_order($local_id)
     global $MC_Text;
     global $PMC;
 
-    list($params, $cludges, $title, $description) = explode("\t", $MC_Text->get("message-1_$local_id#8"));
+    $response = $MC_Text->get("message-1_$local_id#8");
+    if ($response === FALSE)
+        return FALSE;
+
+    list($params, $cludges, $title, $description) = explode("\t", $response);
     list($flags, $time, $uid) = explode(',', $params);
     list(,$price) = explode("\x20", $cludges);
     return array('id' => $local_id,
                  'uid' => $uid,
+                 'flags' => $flags,
                  'time' => $time,
                  'title' => $title,
                  'description' => $description,
+                 'amount' => $price,
                  'price' => sprintf("%.02f", round($price/100, 2)),
                  'info' => $PMC->get("id$uid"));
 }

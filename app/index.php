@@ -24,7 +24,7 @@ set('VK_APP_ID', APP_ID);
 set('title', 'V-order');
 set('content', '');
 
-function index($mine)
+function route_index($mine)
 {
     $member = checkAuth();
     set('member', $member);
@@ -38,7 +38,7 @@ function index($mine)
     include 'templates/_layout.php';
 }
 
-function auth()
+function route_auth()
 {
     $member = authOpenAPIMember();
     if ($member === FALSE || $member['id'] != $_POST['mid']) {
@@ -58,7 +58,7 @@ function auth()
     echo json_encode($member);
 }
 
-function deposit()
+function route_deposit()
 {
     global $PMC;
     $member = checkAuth();
@@ -72,7 +72,7 @@ function deposit()
     include 'templates/_layout.php';
 }
 
-function post_deposit()
+function route_post_deposit()
 {
     global $PMC;
 
@@ -113,13 +113,7 @@ function post_deposit()
         $PMC->delete($key);
         if ($parts[0] != 1)
             return json_error('DEPOSIT_ERROR');
-        $balance = get_balance("USR", $member['id'], null);
-        if (!$balance)
-            return json_error('DEPOSIT_ERROR');
-        list($bal, $cur, $lock) = explode(':', $balance);
-        $response['balance'] = sprintf("%.02f", round($bal/100, 2));
-        $response['locked'] = sprintf("%.02f", round($lock/100, 2));
-        $response['raw'] = $balance;
+        $response['balance'] = formatBalance("USR", $member['id']);
     } else {
         status(HTTP_BAD_REQUEST);
         exit;
@@ -135,10 +129,8 @@ function json_error($msg)
     echo json_encode(array('error' => $msg));
 }
 
-function order()
+function route_post_order()
 {
-    global $PMC;
-
     $member = authOpenAPIMember();
     if ($member === FALSE) {
         status(HTTP_FORBIDDEN);
@@ -189,53 +181,142 @@ function order()
     include 'templates/_order.php';
     $html = ob_get_clean();
 
-    $response = array('order' => $i, 'html' => $html);
-    $balance = get_balance("USR", $uid, null);
-    if ($balance) {
-        list($bal, $cur, $lock) = explode(':', $balance);
-        $response['balance'] = sprintf("%.02f", round($bal/100, 2));
+    $response = array('order' => $i, 'html' => $html, 'balance' => formatBalance('USR', $uid));
+    send_header('Content-Type: application/json; charset=utf-8');
+    echo json_encode($response);
+}
+
+function route_post_order_action($local_id)
+{
+    global $MC_Text;
+
+    if (!preg_match('/^\d+$/', $local_id)) {
+        status(HTTP_NOT_FOUND);
+        exit;
+    }
+
+    $member = authOpenAPIMember();
+    if ($member === FALSE) {
+        status(HTTP_FORBIDDEN);
+        exit;
+    }
+
+    $uid = $member['id'];
+    $order = get_order($local_id);
+    if ($order === FALSE) {
+        status(HTTP_NOT_FOUND);
+        exit;
+    }
+
+    $response = array();
+    $act = $_POST['act'];
+
+    switch ($act) {
+    case 'cancel':
+        if ($order['uid'] != $member['id']) {
+            status(HTTP_FORBIDDEN);
+            exit;
+        }
+        if (($order['flags'] & FLAG_DELETED) == FLAG_DELETED)
+            return json_error('ORDER_CANCELLED');
+
+        if (($order['flags'] & FLAG_REPLIED) == FLAG_REPLIED)
+            return json_error('ORDER_COMMITTED');
+
+        // Start and lock 'reverse-order' transaction
+        $temp = start_order_transaction($uid, -$order['amount']);
+        if ($temp === FALSE)
+            return json_error('START_TRANS');
+
+        // Set order 'DELETED' flag
+        $res = $MC_Text->increment("flags-1_$local_id", FLAG_DELETED);
+        if ($res === FALSE) {
+            // Cancel transaction
+            delete_temp_transaction($temp);
+            return json_error('CANCEL_ORDER');
+        }
+        // Commit 'reverse-order' transaction
+        commit_transaction($temp);
+
+        $response['ok'] = TRUE;
+        // Refresh balance
+        $response['balance'] = formatBalance('USR', $uid);
+        $response['order_balance'] = formatBalance('ORD', $uid);
+        break;
+    case 'commit':
+        # Prevent from committing own orders
+        #if ($order['uid'] == $member['id']) {
+        #    status(HTTP_FORBIDDEN);
+        #    exit;
+        #}
+        if (($order['flags'] & FLAG_DELETED) == FLAG_DELETED)
+            return json_error('ORDER_CANCELLED');
+
+        if (($order['flags'] & FLAG_REPLIED) == FLAG_REPLIED)
+            return json_error('ORDER_COMMITTED');
+
+        // Start and lock 'commit-order' transaction
+        $temp = start_commit_order_transaction($uid, $order['uid'], $order['amount']);
+        if ($temp === FALSE)
+            return json_error('START_TRANS');
+
+        // Set order 'COMMITTED' flag
+        $resp = $MC_Text->increment("flags-1_$local_id", FLAG_REPLIED);
+        if ($resp === FALSE) {
+            // Cancel transaction
+            delete_temp_transaction($temp);
+            return json_error('COMMIT_ORDER');
+        }
+        // Commit 'commit-order' transaction
+        $resp = commit_transaction($temp);
+        # TODO: Store transaction id in the order
+
+        $response['ok'] = TRUE;
+        // Refresh balance
+        $response['balance'] = formatBalance('USR', $uid);
+        $response['order_balance'] = formatBalance('ORD', $uid);
+        break;
+    default:
+        status(HTTP_BAD_REQUEST);
+        exit;
     }
     send_header('Content-Type: application/json; charset=utf-8');
     echo json_encode($response);
 }
 
-function hello($world) {
-    set('title', $world);
-    global $page;
-    include 'templates/_layout.php';
-}
-
 dispatch_post('/auth', 'auth');
 dispatch('/', 'index');
 dispatch('/mine', 'mine');
-dispatch_post('/order', 'order');
+dispatch_post('/order', 'post_order');
+dispatch_post('/order/:id', 'post_order_action');
 dispatch('/deposit', 'deposit');
 dispatch_post('/deposit', 'post_deposit');
-dispatch('/hello/:world/', 'hello');
 
 $route = run();
 set('route', $route);
 
 switch ($route['callback']) {
 case 'index':
-    index(null);
+    route_index(null);
     break;
 case 'mine':
-    index(true);
+    route_index(true);
     break;
-case 'order':
-    order();
+case 'post_order':
+    route_post_order();
+    break;
+case 'post_order_action':
+    route_post_order_action($route['params']['id']);
     break;
 case 'auth':
-    auth();
+    route_auth();
     break;
 case 'deposit':
-    deposit();
+    route_deposit();
     break;
 case 'post_deposit':
-    post_deposit();
+    route_post_deposit();
     break;
-case 'hello':
-    hello($route['params']['world']);
-    break;
+default:
+    status(HTTP_NOT_FOUND);
 }

@@ -11,3 +11,9 @@ if (create_account("DEP", 1, DEP_TYPE_CREATE_SECRET, 1, 0x7F000001, k_code(DEP_A
 } else {
     echo "Error creating DEP account\n";
 }
+
+if (create_account("MAS", 1, null, 1, 0x7F000001, null, null, '')) {
+    echo "MAS account created\n";
+} else {
+    echo "Error creating MAS account\n";
+}
