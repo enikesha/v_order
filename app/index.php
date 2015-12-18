@@ -40,6 +40,7 @@ function route_index($mine)
     if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
         global $i;
         global $page;
+        send_header('Content-Type: text/html; charset=utf-8');
         foreach ($orders as $i) {
             include 'templates/_order.php';
         }
@@ -194,6 +195,7 @@ function route_post_order()
 
     // Render order item html
     global $i;
+    global $page;
     $i = get_order($local_id);
     $page = array('member' => $member);
     ob_start();
