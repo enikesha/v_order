@@ -1,4 +1,6 @@
 window.pages = {
+    reached_end: false,
+    loading: false,
     global: function() {
         document.getElementById('logout').addEventListener('click', authLogout, false);
     },
@@ -16,6 +18,7 @@ window.pages = {
 
 function listenOrders() {
     document.getElementById('add-order').addEventListener('click', addOrder, false);
+    window.addEventListener('scroll', onScroll, false);
 }
 
 function authLogout(e) {
@@ -177,4 +180,41 @@ function orderAct(e, act) {
             showError(targ, msg);
         }
     });
+}
+
+function loadMore(e) {
+    var orders = document.getElementById('orders');
+    if (orders.childElementCount < 2)
+        return;
+
+    window.pages.loading = true;
+    var progress = document.getElementById('loading');
+    progress.className = 'progress';
+
+    var lastId = orders.children[orders.childElementCount-2].getAttribute('data-id');
+    ajax.get('', {o: lastId}, function(r) {
+        if (r) {
+            var empty = orders.children[orders.childElementCount-1];
+            var emptyHTML = empty.outerHTML;
+            empty.remove();
+            orders.innerHTML += r + emptyHTML;
+            //if (history && history.replaceState) {
+            //    history.replaceState({}, document.title, '?o='+lastId);
+            //}
+        } else {
+            window.pages.reached_end = true;
+        }
+        progress.className = 'progress hidden';
+        window.pages.loading = false;
+    });
+}
+
+
+function onScroll(e) {
+    if (window.pages.reached_end || window.pages.loading)
+        return;
+    var doc = document.documentElement;
+    var heightLeft = doc.scrollHeight - window.scrollY - doc.clientHeight;
+    if (heightLeft < 150)
+        loadMore();
 }

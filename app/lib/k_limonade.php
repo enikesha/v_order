@@ -539,11 +539,10 @@ function error_html($content)
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
   <title>Limonade, the fizzy PHP micro-framework</title>
-  <link rel="stylesheet" href="<?php echo url_for('/_lim_css/screen.css');?>" type="text/css" media="screen">
 </head>
 <body>
   <div id="header">
-    <h1>Limonade</h1>
+    <h1>Error</h1>
   </div>
   
   <div id="content">
@@ -843,7 +842,6 @@ function request_uri($env = null)
     $app_file = app_file();
     $path_info = isset($env['SERVER']['PATH_INFO']) ? $env['SERVER']['PATH_INFO'] : '';
     $query_string =  isset($env['SERVER']['QUERY_STRING']) ? $env['SERVER']['QUERY_STRING'] : '';
-
     // Is there a PATH_INFO variable?
     // Note: some servers seem to have trouble with getenv() so we'll test it two ways
     if (trim($path_info, '/') != '' && $path_info != "/".$app_file)
@@ -893,9 +891,9 @@ function request_uri($env = null)
 #      $uri = str_replace($base_path, '', $request_uri);
 #endif
 
-      if(option('base_uri') && strpos($uri, option('base_uri')) === 0) {
-        $uri = substr($uri, strlen(option('base_uri')));
-      }
+      #if(option('base_uri') && strpos($uri, option('base_uri')) === 0) {
+      #  $uri = substr($uri, strlen(option('base_uri')));
+      #}
       if(strpos($uri, '?') !== false) {
       	$uri = substr($uri, 0, strpos($uri, '?')) . '/';
       }

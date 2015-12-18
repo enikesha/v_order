@@ -224,3 +224,13 @@ function get_orders($from, $to, $peer)
     $count = array_shift($ids);
     return array_map('get_order', $ids);
 }
+
+function get_reverse_pos($local_id)
+{
+    global $MC_Text;
+    
+    $total = $MC_Text->get("sublist-1_194:0#0,0");
+    $pos = $MC_Text->get("sublistpos-1_194:0,$local_id");
+
+    return $total - $pos + 2;
+}

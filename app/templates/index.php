@@ -36,3 +36,8 @@
     }?>
   <li id="no-orders"<?php if (count($page['orders'])>0) echo ' class="hidden"'?>>Заказов пока нет</li>
 </ul>
+
+<div class="progress hidden" id="loading">
+  <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%">
+  </div>
+</div>

@@ -28,8 +28,26 @@ function route_index($mine)
 {
     $member = checkAuth();
     set('member', $member);
+
+    if (isset($_GET['o']) && preg_match('/^\d+$/', $_GET['o'])) {
+        $from = get_reverse_pos($_GET['o']);
+    } else {
+        $from = 1;
+    }
+    $orders = get_orders(-$from, -$from - PAGE_SIZE + 1, $mine ? $member['id'] : null);
+
+    /* AJAX check  */
+    if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+        global $i;
+        global $page;
+        foreach ($orders as $i) {
+            include 'templates/_order.php';
+        }
+        return;
+    }
+
     set('mine', $mine);
-    set('orders', get_orders(-1, -10, $mine ? $member['id'] : null));
+    set('orders', $orders);
 
     global $page;
     ob_start();
