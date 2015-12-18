@@ -44,6 +44,7 @@
 
 <script type="text/javascript">
   window.queues = {
+    id: <?php echo $page['member']['id']?>,
     mine: <?php echo($page['mine_queue'])?>,
     common: <?php echo(isset($page['common_queue']) ? $page['common_queue'] : 'null')?>
   }

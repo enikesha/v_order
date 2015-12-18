@@ -114,7 +114,8 @@ function route_post_deposit()
     }
 
     $response = array();
-    $key = "dep{$member['id']}";
+    $uid = $member['id'];
+    $key = "dep$uid";
     $existing = $PMC->get($key);
 
     if (isset($_POST['amount'])) {
@@ -124,7 +125,7 @@ function route_post_deposit()
         if ($amount === FALSE)
             return json_error('BAD_AMOUNT');
         // Create and lock deposit for 10 mins
-        $parts = create_deposit_transaction($member['id'], $amount);
+        $parts = create_deposit_transaction($uid, $amount);
         if (!$parts)
             return json_error('DEPOSIT_ERROR');
         $unlock = mt_rand(1000, 9999);
@@ -144,7 +145,11 @@ function route_post_deposit()
         $PMC->delete($key);
         if ($parts[0] != 1)
             return json_error('DEPOSIT_ERROR');
-        $response['balance'] = formatBalance("USR", $member['id']);
+        $response['balance'] = formatBalance("USR", $uid);
+
+        // Send to user's queue
+        global $MC_Queue;
+        $MC_Queue->add("queue(orders$uid)", "\x02".json_encode(array('balance'=>$response['balance'])));
     } else {
         status(HTTP_BAD_REQUEST);
         exit;
