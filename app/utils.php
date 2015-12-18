@@ -225,12 +225,17 @@ function get_orders($from, $to, $peer)
     return array_map('get_order', $ids);
 }
 
-function get_reverse_pos($local_id)
+function get_reverse_pos($local_id, $peer)
 {
     global $MC_Text;
     
-    $total = $MC_Text->get("sublist-1_194:0#0,0");
-    $pos = $MC_Text->get("sublistpos-1_194:0,$local_id");
+    if ($peer == null) {
+        $total = $MC_Text->get("sublist-1_194:0#0,0");
+        $pos = $MC_Text->get("sublistpos-1_194:0,$local_id");
+    } else {
+        $total = $MC_Text->get("peermsglist-1_$peer#0,0");
+        $pos = $MC_Text->get("peermsglistpos-1_$peer:$local_id");
+    }
 
     return $total - $pos + 2;
 }

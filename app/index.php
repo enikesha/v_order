@@ -30,7 +30,7 @@ function route_index($mine)
     set('member', $member);
 
     if (isset($_GET['o']) && preg_match('/^\d+$/', $_GET['o'])) {
-        $from = get_reverse_pos($_GET['o']);
+        $from = get_reverse_pos($_GET['o'], $mine ? $member['id'] : null);
     } else {
         $from = 1;
     }
