@@ -59,8 +59,11 @@ function removeOrder(li) {
 }
 
 function handleEvent(e, mine) {
-    if (e.balance)
-	$('.balance').text(e.balance);
+    if (e.balance) {
+	Array.prototype.forEach.call(document.querySelectorAll('.balance'), function (el){
+            el.innerText = e.balance;
+        });
+    }
     if (e.cancel) {
 	removeOrder(findOrder(e.cancel));
     } else if (e.commit) {
@@ -140,7 +143,7 @@ function verify(e) {
 
     ajax.post("/deposit", {verify: input.value}, function(r){
         if (r.balance) {
-            $(".balance").text(r.balance);
+            //$(".balance").text(r.balance);
             document.getElementById('inputAmount').value='';
             document.getElementById('inputVerify').value='';
             document.getElementById('verify-form').className = 'hidden';
