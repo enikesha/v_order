@@ -21,69 +21,80 @@ function listenOrders() {
     window.addEventListener('scroll', onScroll, false);
     pollQueue(window.queues.mine, true);
     if (window.queues.common)
-	pollQueue(window.queues.common, false);
+        pollQueue(window.queues.common, false);
 }
 
 function pollQueue(params, mine) {
     data = {act: 'a_check', key: params.key, ts: params.ts, id: window.queues.id, wait: 120};
     ajax.post('/im255', data, function(r){
-	if (r.failed) {
-	    console.log(r);
-	    return;
-	}
+        if (!r.events) {
+            console.log(r);
+            return;
+        }
 
-	for (var i = 0; i < r.events.length; i++)
-	    handleEvent(r.events[i], mine);
+        for (var i = 0; i < r.events.length; i++)
+            handleEvent(r.events[i], mine);
 
-	params.ts = r.ts;
-	setTimeout(function(){ pollQueue(params, mine) }, 10);
+        params.ts = r.ts;
+        setTimeout(function(){ pollQueue(params, mine) }, 10);
     });
 }
 
 function findOrder(localId) {
     var ul = document.getElementById('orders');
     for (var i=0; i<ul.childElementCount-1; i++) {
-	var li = ul.children[i];
-	if (li.getAttribute('data-id') == localId)
-	    return li;
+        var li = ul.children[i];
+        if (li.getAttribute('data-id') == localId)
+            return li;
     }
     return null;
 }
 
+function prependOrder(html) {
+    var orders = document.getElementById('orders');
+    orders.innerHTML = html + orders.innerHTML;
+    document.getElementById('no-orders').className = 'hidden';
+}
+
 function removeOrder(li) {
-    if (li) {
-        if (li.parentElement.childElementCount == 1)
+    if (li && li.parentElement) {
+        if (li.parentElement.childElementCount == 2)
             document.getElementById('no-orders').className = '';
-	li.remove();
+        li.remove();
     }
 }
 
+function setBalance(balance) {
+    Array.prototype.forEach.call(document.querySelectorAll('.balance'), function (el){
+        el.innerText = balance;
+    });
+}
+
 function handleEvent(e, mine) {
-    if (e.balance) {
-	Array.prototype.forEach.call(document.querySelectorAll('.balance'), function (el){
-            el.innerText = e.balance;
-        });
-    }
+    if (e.balance)
+        setBalance(e.balance);
+
     if (e.cancel) {
-	removeOrder(findOrder(e.cancel));
+        removeOrder(findOrder(e.cancel));
     } else if (e.commit) {
-	var li = findOrder(e.commit);
-	if (li) {
-	    if (e.html) {
-		i.outerHTML = e.html;
-	    } else {
-		removeOrder(li);
-	    }
-	}
+        // Don't changes to our orders from mine queue on common page
+        if (mine && window.queues.common)
+            return;
+        var li = findOrder(e.commit);
+        if (li) {
+            if (e.html) {
+                li.outerHTML = e.html;
+            } else {
+                removeOrder(li);
+            }
+        }
     } else if (e.order) {
-	if (findOrder(e.order.id))
-	    return;
+        if (findOrder(e.order.id))
+            return;
         // Don't add new our orders from common queue
         if (!mine && e.order.uid == window.queues.id)
             return;
-        var ul = document.getElementById('orders');
-        ul.innerHTML = e.html + ul.innerHTML;
-        document.getElementById('no-orders').className = 'hidden';
+        prependOrder(e.html);
     }
 }
 
@@ -143,7 +154,7 @@ function verify(e) {
 
     ajax.post("/deposit", {verify: input.value}, function(r){
         if (r.balance) {
-            //$(".balance").text(r.balance);
+            setBalance(r.balance);
             document.getElementById('inputAmount').value='';
             document.getElementById('inputVerify').value='';
             document.getElementById('verify-form').className = 'hidden';
@@ -189,11 +200,9 @@ function addOrder(e) {
                          description: description.value,
                          price:price.value}, function(r){
         if (!r.error) {
-	    // New item will be added on queue update
-            //$(".balance").text(r.balance);
-            //var orders = document.getElementById('orders');
-            //orders.innerHTML = r.html + orders.innerHTML;
-            //document.getElementById('no-orders').className = 'hidden';
+            setBalance(r.balance);
+            if (!findOrder(r.order.id))
+                prependOrder(r.html);
             title.value = description.value = price.value = '';
         } else {
             var msg;
@@ -226,11 +235,8 @@ function orderAct(e, act) {
 
     ajax.post("/order/" + localId, {act: act}, function(r){
         if (r.ok) {
-	    // Will be removed on queue update
-            //$(".balance").text(r.balance);
-            //if (li.parentElement.childElementCount == 2)
-            //    document.getElementById('no-orders').className = '';
-            //li.remove();
+            setBalance(r.balance);
+            removeOrder(li);
         } else {
             var msg;
             switch (r.error) {

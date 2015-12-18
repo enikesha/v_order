@@ -239,3 +239,19 @@ function get_reverse_pos($local_id, $peer)
 
     return $total - $pos + 2;
 }
+
+function enqueue($data, $uid)
+{
+    global $MC_Queue;
+    return $MC_Queue->add("queue(orders$uid)", "\x02".json_encode($data));
+}
+
+function queue_get_key($uid, $queue)
+{
+    global $MC_Queue;
+
+    $ip = ip2long(getRealIpAddr());
+    $timeout = 30;
+
+    return $MC_Queue->get("timestamp_key{$uid},{$ip},{$timeout}(orders{$queue})");
+}

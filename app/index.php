@@ -31,13 +31,14 @@ function route_index($mine)
 {
     $member = checkAuth();
     set('member', $member);
+    $uid = $member['id'];
 
     if (isset($_GET['o']) && preg_match('/^\d+$/', $_GET['o'])) {
-        $from = get_reverse_pos($_GET['o'], $mine ? $member['id'] : null);
+        $from = get_reverse_pos($_GET['o'], $mine ? $uid : null);
     } else {
         $from = 1;
     }
-    $orders = get_orders(-$from, -$from - PAGE_SIZE + 1, $mine ? $member['id'] : null);
+    $orders = get_orders(-$from, -$from - PAGE_SIZE + 1, $mine ? $uid : null);
 
     /* AJAX check  */
     if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
@@ -54,14 +55,10 @@ function route_index($mine)
     set('orders', $orders);
 
     // Get queues keys
-    global $MC_Queue;
-    $ip = ip2long(getRealIpAddr());
-    $uid = $member['id'];
-    $timeout = 30;
-    set('mine_queue', $MC_Queue->get("timestamp_key{$uid},{$ip},{$timeout}(orders{$uid})"));
-    if ($mine == null) {
-        set('common_queue', $MC_Queue->get("timestamp_key{$uid},{$ip},{$timeout}(orders)"));
-    }
+    set('mine_queue', queue_get_key($uid, $uid));
+    if ($mine == null)
+        set('common_queue', queue_get_key($uid, ''));
+
     global $page;
     ob_start();
     include 'templates/index.php';
@@ -148,8 +145,7 @@ function route_post_deposit()
         $response['balance'] = formatBalance("USR", $uid);
 
         // Send to user's queue
-        global $MC_Queue;
-        $MC_Queue->add("queue(orders$uid)", "\x02".json_encode(array('balance'=>$response['balance'])));
+        enqueue(array('balance'=>$response['balance']), $uid);
     } else {
         status(HTTP_BAD_REQUEST);
         exit;
@@ -222,8 +218,7 @@ function route_post_order()
     $response = array('order' => $i, 'html' => $html, 'balance' => formatBalance('USR', $uid));
 
     // Send to user's queue
-    global $MC_Queue;
-    $MC_Queue->add("queue(orders$uid)", "\x02".json_encode($response));
+    enqueue($response, $uid);
     
     // Render common html
     $page['member']['id'] = 0;
@@ -231,7 +226,7 @@ function route_post_order()
     include 'templates/_order.php';
     $html = ob_get_clean();
     // Send to common queue
-    $MC_Queue->add("queue(orders)", "\x02".json_encode(array('order'=>$i, 'html'=> $html)));
+    enqueue(array('order'=>$i, 'html'=> $html), '');
 
 
     send_header('Content-Type: application/json; charset=utf-8');
@@ -241,7 +236,6 @@ function route_post_order()
 function route_post_order_action($local_id)
 {
     global $MC_Text;
-    global $MC_Queue;
 
     if (!preg_match('/^\d+$/', $local_id)) {
         status(HTTP_NOT_FOUND);
@@ -294,14 +288,14 @@ function route_post_order_action($local_id)
         $response['ok'] = TRUE;
 	
         // Send to common queue
-        $MC_Queue->add("queue(orders)", "\x02".json_encode(array('cancel'=>$local_id)));
+        enqueue(array('cancel'=>$local_id), '');
 
         // Refresh balance
         $response['balance'] = formatBalance('USR', $uid);
         $response['order_balance'] = formatBalance('ORD', $uid);
 
         // Send to user's queue
-        $MC_Queue->add("queue(orders$uid)", "\x02".json_encode(array('cancel'=>$local_id, 'balance'=>$response['balance'])));
+        enqueue(array('cancel'=>$local_id, 'balance'=>$response['balance']), $uid);
 
         break;
     case 'commit':
@@ -337,14 +331,15 @@ function route_post_order_action($local_id)
         $response['balance'] = formatBalance('USR', $uid);
         $response['order_balance'] = formatBalance('ORD', $uid);
 
+        $author = $order['uid'];
         // Send to user's queue
-        $MC_Queue->add("queue(orders$uid)", "\x02".json_encode(array('commit'=>$local_id, 'balance'=>$response['balance'])));
+        if ($uid != $author)
+            enqueue(array('commit'=>$local_id, 'balance'=>$response['balance']), $uid);
 
         // Send to common queue
-        $MC_Queue->add("queue(orders)", "\x02".json_encode(array('commit'=>$local_id)));
+        enqueue(array('commit'=>$local_id), '');
 
         // Render author's html
-        $author = $order['uid'];
         global $i;
         global $page;
         $i = get_order($local_id);
@@ -354,7 +349,10 @@ function route_post_order_action($local_id)
         $html = ob_get_clean();
 
         // Send to author's queue
-        $MC_Queue->add("queue(orders$author)", "\x02".json_encode(array('commit' => $local_id, 'order'=>$i, 'html'=> $html)));
+        $data = array('commit' => $local_id, 'order'=>$i, 'html'=> $html);
+        if ($author == $uid)
+            $data['balance'] = $response['balance'];
+        enqueue($data, $author);
 
         break;
     default:
