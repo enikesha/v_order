@@ -20,6 +20,9 @@ $PMC->connect(PMC_HOST, PMC_PORT);
 $MC_Text = new Memcache;
 $MC_Text->connect(MC_TEXT_HOST, MC_TEXT_PORT);
 
+$MC_Queue = new Memcache;
+$MC_Queue->connect(MC_QUEUE_HOST, MC_QUEUE_PORT);
+
 set('VK_APP_ID', APP_ID);
 set('title', 'V-order');
 set('content', '');
@@ -50,6 +53,15 @@ function route_index($mine)
     set('mine', $mine);
     set('orders', $orders);
 
+    // Get queues keys
+    global $MC_Queue;
+    $ip = ip2long(getRealIpAddr());
+    $uid = $member['id'];
+    $timeout = 30;
+    set('mine_queue', $MC_Queue->get("timestamp_key{$uid},{$ip},{$timeout}(orders{$uid})"));
+    if ($mine == null) {
+        set('common_queue', $MC_Queue->get("timestamp_key{$uid},{$ip},{$timeout}(orders)"));
+    }
     global $page;
     ob_start();
     include 'templates/index.php';
@@ -193,7 +205,7 @@ function route_post_order()
         return json_error('COMMIT_TRANS');
     }
 
-    // Render order item html
+    // Render user's html
     global $i;
     global $page;
     $i = get_order($local_id);
@@ -203,6 +215,20 @@ function route_post_order()
     $html = ob_get_clean();
 
     $response = array('order' => $i, 'html' => $html, 'balance' => formatBalance('USR', $uid));
+
+    // Send to user's queue
+    global $MC_Queue;
+    $MC_Queue->add("queue(orders$uid)", "\x02".json_encode($response));
+    
+    // Render common html
+    $page['member']['id'] = 0;
+    ob_start();
+    include 'templates/_order.php';
+    $html = ob_get_clean();
+    // Send to common queue
+    $MC_Queue->add("queue(orders)", "\x02".json_encode(array('order'=>$i, 'html'=> $html)));
+
+
     send_header('Content-Type: application/json; charset=utf-8');
     echo json_encode($response);
 }
@@ -210,6 +236,7 @@ function route_post_order()
 function route_post_order_action($local_id)
 {
     global $MC_Text;
+    global $MC_Queue;
 
     if (!preg_match('/^\d+$/', $local_id)) {
         status(HTTP_NOT_FOUND);
@@ -260,9 +287,17 @@ function route_post_order_action($local_id)
         commit_transaction($temp);
 
         $response['ok'] = TRUE;
+	
+        // Send to common queue
+        $MC_Queue->add("queue(orders)", "\x02".json_encode(array('cancel'=>$local_id)));
+
         // Refresh balance
         $response['balance'] = formatBalance('USR', $uid);
         $response['order_balance'] = formatBalance('ORD', $uid);
+
+        // Send to user's queue
+        $MC_Queue->add("queue(orders$uid)", "\x02".json_encode(array('cancel'=>$local_id, 'balance'=>$response['balance'])));
+
         break;
     case 'commit':
         # Prevent from committing own orders
@@ -296,6 +331,26 @@ function route_post_order_action($local_id)
         // Refresh balance
         $response['balance'] = formatBalance('USR', $uid);
         $response['order_balance'] = formatBalance('ORD', $uid);
+
+        // Send to user's queue
+        $MC_Queue->add("queue(orders$uid)", "\x02".json_encode(array('commit'=>$local_id, 'balance'=>$response['balance'])));
+
+        // Send to common queue
+        $MC_Queue->add("queue(orders)", "\x02".json_encode(array('commit'=>$local_id)));
+
+        // Render author's html
+        $author = $order['uid'];
+        global $i;
+        global $page;
+        $i = get_order($local_id);
+        $page = array('member' => array('id'=>$author));
+        ob_start();
+        include 'templates/_order.php';
+        $html = ob_get_clean();
+
+        // Send to author's queue
+        $MC_Queue->add("queue(orders$author)", "\x02".json_encode(array('commit' => $local_id, 'order'=>$i, 'html'=> $html)));
+
         break;
     default:
         status(HTTP_BAD_REQUEST);

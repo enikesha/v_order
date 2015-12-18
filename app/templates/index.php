@@ -41,3 +41,10 @@
   <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%">
   </div>
 </div>
+
+<script type="text/javascript">
+  window.queues = {
+    mine: <?php echo($page['mine_queue'])?>,
+    common: <?php echo(isset($page['common_queue']) ? $page['common_queue'] : 'null')?>
+  }
+</script>
